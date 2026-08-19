@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- TABLA DE EVENTOS (MAESTRA) ---
+model events {
+  id           Int      @id @default(autoincrement())
+  name         String
+  location     String
+  date         DateTime
+  invite_code  String   @unique
+  organizer_id Int
+  created_at   DateTime @default(now())
+
+  // Relaciones (Hacia abajo)
+  // Un evento tiene muchas tandas y muchos vendedores asignados
+  tandas        tandas[]
+  event_sellers event_sellers[]
+}
+
+// --- TABLA DE TANDAS (HIJA DE EVENTOS) ---
+model tandas {
+  id               Int      @id @default(autoincrement())
+  event_id         Int
+  organizer_id     Int
+  name             String
+  capacity         Int
+  price            Float
+  gender           String
+  start_time       DateTime
+  end_time         DateTime
+  is_active        Boolean
+  sold_tickets     Int      @default(0)
+  reserved_tickets Int      @default(0)
+
+  // Relación: Una tanda pertenece a un evento
+  event events @relation(fields: [event_id], references: [id])
+
+  // Relación: Una tanda tiene muchas ventas
+  ticket_sales ticket_sales[]
+}
+
+// --- TABLA DE VENTAS (HIJA DE TANDAS) ---
+model ticket_sales {
+  id         Int      @id @default(autoincrement())
+  tanda_id   Int
+  seller_id  Int
+  quantity   Int
+  created_at DateTime @default(now())
+
+  // Relación: Una venta pertenece a una tanda específica
+  tanda tandas @relation(fields: [tanda_id], references: [id])
+}
+
+// --- TABLA DE VENDEDORES POR EVENTO (HIJA DE EVENTOS) ---
+model event_sellers {
+  id           Int    @id @default(autoincrement())
+  event_id     Int
+  seller_id    Int
+  seller_name  String
+  seller_email String
+
+  // Relación: Este registro pertenece a un evento
+  event events @relation(fields: [event_id], references: [id])
+}
+
+// --- POOL DE ENTRADAS CANCELADAS ---
+model canceled_tickets {
+  id                Int      @id @default(autoincrement())
+  event_id          Int
+  original_tanda_id Int
+  attendee_name     String
+  price             Float
+  canceled_at       DateTime @default(now())
+  
+  // No hay relación obligatoria para no romper historial si se borra la tanda
+}

@@ -1,0 +1,93 @@
+version: '3.8'
+
+services:
+  # --- Servicios de la App ---
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "3055:3000"
+    environment:
+      - PORT=3000
+      - AUTH_SERVICE_URL=http://auth-service:4000
+      - CORE_SERVICE_URL=http://core-service:4001
+      - AUXILIARY_SERVICE_URL=http://auxiliary-service:4003
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      core-service:
+        condition: service_healthy
+      auxiliary-service:
+        condition: service_healthy
+    networks:
+      - app_net
+
+  auth-service:
+    build: ./auth-service
+    env_file: ./auth-service/.env
+    environment:
+      - PORT=4000
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - redis
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:4000/ping').then(r => r.ok ? process.exit(0) : process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app_net
+      - db_net
+
+  core-service:
+    build: ./core-service
+    env_file: ./core-service/.env
+    environment:
+      - PORT=4001
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - redis
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:4001/ping').then(r => r.ok ? process.exit(0) : process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app_net
+      - db_net
+
+  auxiliary-service:
+    build: ./auxiliary-service
+    env_file: ./auxiliary-service/.env
+    environment:
+      - PORT=4003
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - redis
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:4003/ping').then(r => r.ok ? process.exit(0) : process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app_net
+      - db_net
+
+  redis:
+    image: redis:alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - app_net
+
+networks:
+  app_net:
+    driver: bridge
+  db_net:
+    external: true
+    name: postgres-stack_default

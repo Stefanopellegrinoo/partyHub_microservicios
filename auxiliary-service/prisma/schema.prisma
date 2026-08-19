@@ -1,0 +1,61 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// MODELOS DE ATTENDEE SERVICE
+// ==========================================
+
+model attendees {
+  id           String    @id @default(uuid()) @db.Uuid
+  full_name    String
+  document_id  String
+  email        String
+  phone        String?
+  paid         Boolean   @default(false)
+  
+  event_id     Int
+  tanda_id     Int
+  tanda_name   String    
+  tanda_price  Float     
+  seller_id    Int
+  
+  ticket_code  String    @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  created_at   DateTime  @default(now())
+  validated_at DateTime?
+}
+
+// ==========================================
+// MODELOS DE REPORT SERVICE
+// ==========================================
+
+model report_events {
+  id            Int      @id @default(autoincrement())
+  attendee_id   String   @db.Uuid
+  attendee_name String
+  paid          Boolean
+  event_id      Int
+  tanda_id      Int
+  tanda_name    String
+  tanda_price   Float
+  seller_id     Int
+  seller_name   String
+  created_at    DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    Int
+  title     String
+  body      String
+  type      String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("notifications")
+}
